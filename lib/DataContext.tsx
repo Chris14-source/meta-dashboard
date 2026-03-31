@@ -3,20 +3,17 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { MetaData } from "./types";
 
-// La "forma" del magazzino: contiene i dati, una funzione per salvarli,
-// e un flag che dice se qualcosa è stato caricato
+// La "forma" del magazzino
 interface DataContextType {
   data: MetaData;
   setData: (data: MetaData) => void;
   isLoaded: boolean;
 }
 
-// Il magazzino parte vuoto — tutti array vuoti
+// Il magazzino parte vuoto
 const emptyData: MetaData = {
-  adInterests: [],
-  adInteractions: [],
-  advertisers: [],
-  offFacebookActivity: [],
+  rows: [],
+  fileName: "",
 };
 
 // Creiamo il magazzino
@@ -26,8 +23,7 @@ const DataContext = createContext<DataContextType>({
   isLoaded: false,
 });
 
-// Questo componente "avvolge" tutta l'app come una scatola.
-// Tutto ciò che sta dentro può accedere al magazzino.
+// Questo componente avvolge tutta l'app
 export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setDataState] = useState<MetaData>(emptyData);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -44,6 +40,5 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Questa funzione ti permette di accedere al magazzino da qualsiasi componente.
-// Basta scrivere: const { data, isLoaded } = useMetaData();
+// Per accedere ai dati da qualsiasi componente
 export const useMetaData = () => useContext(DataContext);

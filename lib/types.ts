@@ -1,8 +1,9 @@
-// Una singola riga del CSV — corrisponde a un'inserzione
+// Una singola riga del CSV — un'inserzione in un giorno specifico
 export interface AdRow {
     campaignName: string;
     adSetName: string;
     adName: string;
+    day: string;
     status: string;
     level: string;
     reach: number;

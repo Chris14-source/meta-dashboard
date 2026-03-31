@@ -17,7 +17,6 @@ export default function FileUploader() {
   const { setData } = useMetaData();
   const router = useRouter();
 
-  // Converte una stringa in numero, gestendo virgole e valori vuoti
   const toNum = (val: string): number => {
     if (!val || val.trim() === "") return 0;
     const cleaned = val.replace(",", ".").trim();
@@ -25,8 +24,6 @@ export default function FileUploader() {
     return isNaN(num) ? 0 : num;
   };
 
-  // Divide una riga CSV rispettando le virgolette
-  // Es: "Ciao, mondo","test" → ["Ciao, mondo", "test"]
   const splitCSVRow = (row: string): string[] => {
     const result: string[] = [];
     let current = "";
@@ -47,51 +44,58 @@ export default function FileUploader() {
     return result;
   };
 
-  // Legge il CSV e trasforma ogni riga in un oggetto AdRow
   const parseCSV = (text: string): AdRow[] => {
-    // Rimuovi il BOM (carattere invisibile all'inizio del file)
     const clean = text.replace(/^\uFEFF/, "");
     const lines = clean.split("\n").filter((l) => l.trim() !== "");
 
     if (lines.length < 2) return [];
 
-    // La prima riga sono le intestazioni (nomi delle colonne)
     const headers = splitCSVRow(lines[0]);
 
-    // Le righe successive sono i dati
+    // Trova la posizione della colonna "Giorno"
+    // Se esiste → formato giornaliero, se no → formato aggregato
+    const dayIndex = headers.findIndex(
+      (h) => h.toLowerCase() === "giorno" || h.toLowerCase() === "day"
+    );
+    const hasDay = dayIndex !== -1;
+
+    // Le posizioni cambiano in base alla presenza della colonna Giorno
+    // Con Giorno: colonne spostate di 1 dopo la posizione 3
+    const offset = hasDay ? 1 : 0;
+
     const rows: AdRow[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = splitCSVRow(lines[i]);
-      if (values.length < 10) continue;
+      const v = splitCSVRow(lines[i]);
+      if (v.length < 10) continue;
 
       rows.push({
-        campaignName: values[0] || "",
-        adSetName: values[1] || "",
-        adName: values[2] || "",
-        status: values[3] || "",
-        level: values[4] || "",
-        reach: toNum(values[5]),
-        impressions: toNum(values[6]),
-        frequency: toNum(values[7]),
-        resultType: values[9] || "",
-        results: toNum(values[10]),
-        amountSpent: toNum(values[11]),
-        costPerResult: toNum(values[12]),
-        linkClicks: toNum(values[15]),
-        cpc: toNum(values[16]),
-        cpm: toNum(values[17]),
-        ctr: toNum(values[18]),
-        allClicks: toNum(values[19]),
-        allCpc: toNum(values[20]),
-        roas: toNum(values[24]),
-        reportStart: values[26] || "",
-        reportEnd: values[27] || "",
+        campaignName: v[0] || "",
+        adSetName: v[1] || "",
+        adName: v[2] || "",
+        day: hasDay ? v[3] || "" : "",
+        status: v[3 + offset] || "",
+        level: v[4 + offset] || "",
+        reach: toNum(v[5 + offset]),
+        impressions: toNum(v[6 + offset]),
+        frequency: toNum(v[7 + offset]),
+        resultType: v[9 + offset] || "",
+        results: toNum(v[10 + offset]),
+        amountSpent: toNum(v[11 + offset]),
+        costPerResult: toNum(v[12 + offset]),
+        linkClicks: toNum(v[15 + offset]),
+        cpc: toNum(v[16 + offset]),
+        cpm: toNum(v[17 + offset]),
+        ctr: toNum(v[18 + offset]),
+        allClicks: toNum(v[19 + offset]),
+        allCpc: toNum(v[20 + offset]),
+        roas: toNum(v[24 + offset]),
+        reportStart: v[26 + offset] || "",
+        reportEnd: v[27 + offset] || "",
       });
     }
     return rows;
   };
 
-  // Quando l'utente carica un file
   const handleFiles = useCallback(async (files: FileList) => {
     setError(null);
     const file = files[0];
@@ -120,7 +124,6 @@ export default function FileUploader() {
     }
   }, []);
 
-  // Gestisce il drag and drop
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -132,7 +135,6 @@ export default function FileUploader() {
     [handleFiles]
   );
 
-  // Vai alla dashboard con i dati
   const handleLaunch = () => {
     setData({
       rows: parsedRows,
@@ -140,6 +142,10 @@ export default function FileUploader() {
     });
     router.push("/dashboard");
   };
+
+  // Controlla se ci sono dati giornalieri
+  const hasDays = parsedRows.some((r) => r.day !== "");
+  const uniqueDays = new Set(parsedRows.map((r) => r.day)).size;
 
   return (
     <div className="space-y-6">
@@ -195,7 +201,8 @@ export default function FileUploader() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">
-                {rowCount} inserzioni trovate
+                {rowCount} righe
+                {hasDays && ` · ${uniqueDays} giorni`}
               </span>
               <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
@@ -206,7 +213,7 @@ export default function FileUploader() {
       {/* BOTTONE PER ANDARE ALLA DASHBOARD */}
       {parsedRows.length > 0 && (
         <Button onClick={handleLaunch} className="w-full" size="lg">
-          Analizza {rowCount} inserzioni → Dashboard
+          Analizza {rowCount} righe → Dashboard
         </Button>
       )}
     </div>
